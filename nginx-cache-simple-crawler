@@ -28,9 +28,8 @@
 # DEALINGS IN THE SOFTWARE.
 SCRIPTNAME=${0##*/}
 
-function print_usage() {
-    echo "$SCRIPTNAME <base URI> <dir> <nginx cache dir> [-debug flag]"
-} # print_usage
+## Source the functions for crawler.
+. $(dirname $0)/nginx-cache-simple-crawler.sh
 
 ## Check the number of arguments.
 if [ $# -lt 3 ]; then
@@ -47,45 +46,18 @@ DIR=$(echo "$2" | sed 's#/$##')
 CURL_PROG=$(which curl)
 [ -x $CURL_PROG ] || exit 0
 
+## The default is 20 requests in parallel.
+PARALLEL=${4-20}
+
 ## Set the debug flag to yes if we pass a third argument otherwise set
 ## it to the empty string.
-DEBUG_FLAG=${4+yes}
+DEBUG_FLAG=${5+yes}
 
-## Crawl a given directory at a certain URI:
-## $1: request URI
-## $2: debug flag (optional)
-function crawl_dir() {
-    ## Print out the headers as a debug.
-    [ -n $2 ] && $CURL_PROG -Is $BASE_URI/${DIR##*/}/$1
-    ## The typical invocation where the output is dumped.
-    [ -z $2 ] && $CURL_PROG -Is $BASE_URI/${DIR##*/}/$1 &>/dev/null
-} # crawl_dir
-
-## The Nginx cache purge script.
-NGINX_CACHE_PURGE=/root/shell/nginx-cache-purge/nginx-cache-purge
-[ -x $NGINX_CACHE_PURGE ] || exit 0
-
-## Cleanup the cache if these files were already cache.
-## $1: The directory of the files to be cached.
-function cleanup_cache() {
-    local l
-
-    for l in $(find "$1" -type f -name "*.lock" -print); do
-        ## Remove the lock file if it already exists.
-        rm $l
-        ## Purge the files from the cache.
-        $NGINX_CACHE_PURGE "${DIR##*/}*" $3
-    done
-} # cleanup_cache
-
-## Crawl all the files in a given directory.
-for i in $(find "$2" -type f -printf '%f\n' 2>/dev/null); do
-    crawl_dir "$i" $DEBUG_FLAG
-done
-
-## Do some cache cleanup. If it's a new set of files then we bail out
-## on cleanup_cache.
+## Do some cache cleanup. If it's a new set of files then we bail out.
 cleanup_cache "$2"
 
+## Crawl the directory.
+crawl_directory $BASE_URI "$2" $PARALLEL $DEBUG_FLAG
+
 ## Create a file indicating that this directory is cached.
-touch "$2"/$(printf '.cached_in_%s.lock' $(date '+ %d%b%Y-%Hh%Mm%Ss'))
+echo date '+ %s' >> "$2"/$(printf '.cached_in_%s.lock' $(date '+ %d%b%Y-%Hh%Mm%Ss'))
