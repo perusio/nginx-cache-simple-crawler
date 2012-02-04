@@ -1,0 +1,91 @@
+#!/bin/bash
+# nginx-simple-crawler --- Crawls a bunch of static files for Nginx cache priming.
+
+# Copyright (C) 2011 António P. P. Almeida <appa@perusio.net>
+
+# Author: António P. P. Almeida <appa@perusio.net>
+
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# Except as contained in this notice, the name(s) of the above copyright
+# holders shall not be used in advertising or otherwise to promote the sale,
+# use or other dealings in this Software without prior written authorization.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+SCRIPTNAME=${0##*/}
+
+function print_usage() {
+    echo "$SCRIPTNAME <base URI> <dir> <nginx cache dir> [-debug flag]"
+} # print_usage
+
+## Check the number of arguments.
+if [ $# -lt 3 ]; then
+    print_usage
+    exit 1
+fi
+
+## The base URI.
+BASE_URI=$1
+
+## Remove trailing slashes.
+DIR=$(echo "$2" | sed 's#/$##')
+
+CURL_PROG=$(which curl)
+[ -x $CURL_PROG ] || exit 0
+
+## Set the debug flag to yes if we pass a third argument otherwise set
+## it to the empty string.
+DEBUG_FLAG=${4+yes}
+
+## Crawl a given directory at a certain URI:
+## $1: request URI
+## $2: debug flag (optional)
+function crawl_dir() {
+    ## Print out the headers as a debug.
+    [ -n $2 ] && $CURL_PROG -Is $BASE_URI/${DIR##*/}/$1
+    ## The typical invocation where the output is dumped.
+    [ -z $2 ] && $CURL_PROG -Is $BASE_URI/${DIR##*/}/$1 &>/dev/null
+} # crawl_dir
+
+## The Nginx cache purge script.
+NGINX_CACHE_PURGE=/root/shell/nginx-cache-purge/nginx-cache-purge
+[ -x $NGINX_CACHE_PURGE ] || exit 0
+
+## Cleanup the cache if these files were already cache.
+## $1: The directory of the files to be cached.
+function cleanup_cache() {
+    local l
+
+    for l in $(find "$1" -type f -name "*.lock" -print); do
+        ## Remove the lock file if it already exists.
+        rm $l
+        ## Purge the files from the cache.
+        $NGINX_CACHE_PURGE "${DIR##*/}*" $3
+    done
+} # cleanup_cache
+
+## Crawl all the files in a given directory.
+for i in $(find "$2" -type f -printf '%f\n' 2>/dev/null); do
+    crawl_dir "$i" $DEBUG_FLAG
+done
+
+## Do some cache cleanup. If it's a new set of files then we bail out
+## on cleanup_cache.
+cleanup_cache "$2"
+
+## Create a file indicating that this directory is cached.
+touch "$2"/$(printf '.cached_in_%s.lock' $(date '+ %d%b%Y-%Hh%Mm%Ss'))
