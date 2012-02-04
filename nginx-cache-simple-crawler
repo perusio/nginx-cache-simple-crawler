@@ -53,16 +53,10 @@ fi
 ## The base URI.
 BASE_URI=$1
 
-## Remove trailing slashes.
-DIR=$(echo "$2" | sed 's#/$##')
-
-CURL_PROG=$(which curl)
-[ -x $CURL_PROG ] || exit 0
-
 ## The default is 20 requests in parallel.
 PARALLEL=${4-20}
 
-## Set the debug flag to yes if we pass a third argument otherwise set
+## Set the debug flag to yes if we pass a fifth argument otherwise set
 ## it to the empty string.
 DEBUG_FLAG=${5+yes}
 

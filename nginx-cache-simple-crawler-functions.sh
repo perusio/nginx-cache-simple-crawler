@@ -33,14 +33,27 @@ function print_usage() {
     echo "$SCRIPTNAME <base URI> <dir> <nginx cache dir> [ -parallel # ] [-debug flag]"
 } # print_usage
 
+## Remove the trailing slash from a directory.
+## $1: The directory name.
+function trim_trailing_slash() {
+    ## Remove trailing slashes.
+    echo "$1" | sed 's#/$##'
+} # trim_trailing_slash
+
+CURL_PROG=$(which curl)
+[ -x $CURL_PROG ] || exit 0
+
 ## Crawl a given file at a certain URI:
-## $1: request URI
-## $2: debug flag (optional)
+## $1: base URI.
+## $2: The file to be crawled.
+## $3: debug flag (optional).
 function crawl_file() {
+    local dir=$(trim_slashing_slash "$2")
+
     ## Print out the headers as a debug.
-    [ -n $2 ] && $CURL_PROG -Is $BASE_URI/${DIR##*/}/$1
+    [ -n $3 ] && $CURL_PROG -Is $1/${dir##*/}/$2
     ## The typical invocation where the output is dumped.
-    [ -z $2 ] && $CURL_PROG -Is $BASE_URI/${DIR##*/}/$1 &>/dev/null
+    [ -z $3 ] && $CURL_PROG -Is $1/${dir##*/}/$2 &>/dev/null
 } # crawl_file
 
 ## Runs the command to purge the Nginx cache.
@@ -51,9 +64,9 @@ function run_cache_purge () {
 } # run_cache_purge
 
 ## Crawl all the files in parallel in a given directory.
-## $1: base URI
-## $2: directory to be crawled
-## $3: the number of requests to issue in parallel
+## $1: base URI.
+## $2: directory to be crawled.
+## $3: the number of requests to issue in parallel.
 ## $4: debug flag (optional).
 function crawl_directory() {
     local i nbr_files iterations rem
@@ -67,11 +80,11 @@ function crawl_directory() {
     ## First we crawl the files in batches the size of the number of parallel.
     i=0
     while [ $i -lt $iterations ]; do
-        find "$2" -type f -printf '%f\n' 2>/dev/null | xargs -I '%c' -P $3 -n 1 crawl_file %c $4
+        find "$2" -type f -printf '%f\n' 2>/dev/null | xargs -I '%c' -P $3 -n 1 crawl_file $1 %c $4
         i=$((i + 1))
     done
     ## Now we do the remainder.
-    find "$2" -type f -printf '%f\n' 2>/dev/null | xargs -I '%c' -P $rem -n 1 crawl_file %c $4
+    find "$2" -type f -printf '%f\n' 2>/dev/null | xargs -I '%c' -P $rem -n 1 crawl_file $1 %c $4
 } # crawl_directory
 
 ## Cleanup the cache if these files were already cache.
