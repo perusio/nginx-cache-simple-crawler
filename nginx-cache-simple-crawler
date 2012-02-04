@@ -26,6 +26,19 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+
+## The Nginx cache purge script wrapper command. This needs to be
+## configured. I suggest using super but you can use any
+## other. e.g. sudo. This needed to have a safe way to invoke the
+## nginx-cache-purge script that requires (rw) read-write access to
+## the nginx cache directory that is owned by the web server user. In
+## Debian based systems that's www-data.
+NGINX_CACHE_PURGE_WRAPPER_CMD=cache-purge # the wrapper 'alias' command
+SETUID_WRAPPER=/usr/bin/super # adjust
+
+###############################################################
+## In principle you shouldn't touch anything below this line.##
+###############################################################
 SCRIPTNAME=${0##*/}
 
 ## Source the functions for crawler.

@@ -29,15 +29,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-## The Nginx cache purge script. This needs to be configured.
-NGINX_CACHE_PURGE=/root/shell/nginx-cache-purge/nginx-cache-purge
-
-[ -x $NGINX_CACHE_PURGE ] || exit 0
-
-###############################################################
-## In principle you shouldn't touch anything below this line.##
-###############################################################
-
 function print_usage() {
     echo "$SCRIPTNAME <base URI> <dir> <nginx cache dir> [ -parallel # ] [-debug flag]"
 } # print_usage
@@ -51,6 +42,13 @@ function crawl_file() {
     ## The typical invocation where the output is dumped.
     [ -z $2 ] && $CURL_PROG -Is $BASE_URI/${DIR##*/}/$1 &>/dev/null
 } # crawl_file
+
+## Runs the command to purge the Nginx cache.
+## $1: The directory of the files to be purged from the cache.
+## $2: The nginx cache directory.
+function run_cache_purge () {
+    $SETUID_WRAPPER $NGINX_CACHE_PURGE_WRAPPER_CMD $1 $2
+} # run_cache_purge
 
 ## Crawl all the files in parallel in a given directory.
 ## $1: base URI
@@ -85,6 +83,6 @@ function cleanup_cache() {
         ## Remove the lock file if it already exists.
         rm $i
         ## Purge the files from the cache.
-        $NGINX_CACHE_PURGE "${DIR##*/}*" $3
+        run_cache_purge "${DIR##*/}*" $3
     done
 } # cleanup_cache
