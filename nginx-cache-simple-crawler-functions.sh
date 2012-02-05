@@ -30,7 +30,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 function print_usage() {
-    echo "$SCRIPTNAME <base URI> <dir> <nginx cache dir> [ -parallel # ] [-debug flag]"
+    echo "$SCRIPTNAME <base URI> <dir> <nginx cache dir> [minutes ago] [parallel] [debug flag]"
 } # print_usage
 
 ## Remove the trailing slash from a directory.
@@ -90,12 +90,18 @@ function crawl_directory() {
 ## Cleanup the cache if these files were already cache.
 ## $1: The directory of the files to be cached.
 ## $2: The Nginx cache directory.
+## $3: The minutes ago that the files were modified.
 function cleanup_cache() {
-    local i dir
+    local i dir time_ago
     ## Trim the trailing slash.
     dir=$(trim_slashing_slash "$1")
 
     for i in $(find "$1" -type f -name "cached_in_*.lock" -print); do
+        ## Get the timestamp in the lock file and compare with now.
+        time_ago=$(($(date '+%s') - $(cat $i)))
+        ## If less than the minutes ago then it's still fresh. Jump to
+        ## next iteration.
+        [ $time_ago -lt $3 ] && continue
         ## Remove the lock file if it already exists.
         rm $i
         ## Purge the files from the cache.

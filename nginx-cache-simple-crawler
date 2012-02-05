@@ -36,6 +36,9 @@
 NGINX_CACHE_PURGE_WRAPPER_CMD=cache-purge # the wrapper 'alias' command
 SETUID_WRAPPER=/usr/bin/super # adjust
 
+## Exclusion pattern (emacs regexes - the default for GNU find).
+EXCLUDE_PATTERN=".*\.\(bzr\|csv\|git\|lml\|svn\).*"
+
 ###############################################################
 ## In principle you shouldn't touch anything below this line.##
 ###############################################################
@@ -50,22 +53,22 @@ if [ $# -lt 3 ]; then
     exit 1
 fi
 
-## The default is 20 requests in parallel.
-PARALLEL=${4-20}
+## Minutes ago the file was modified. Defaults to 5.
+MINUTES_AGO=${4-5}
+
+## The default is 10 requests in parallel.
+PARALLEL=${5-10}
 
 ## Set the debug flag to yes if we pass a fifth argument otherwise set
 ## it to the empty string.
-DEBUG_FLAG=${5+yes}
-
-## Exclusion pattern (emacs regexes - the default for find).
-EXCLUDE_PATTERN=".*\.\(bzr\|csv\|git\|lml\|svn\).*"
+DEBUG_FLAG=${6+yes}
 
 LOG_FILE=/tmp/nginx_simple_crawler.log # log file
 
 ## Loop over all sub-directories that changed from 00h00 of today.
-for d in (find $2 -type d -daystart -mtime 0 -print); do
+for d in (find $2 -type d -daystart -mmin -$MINUTES_AGO -print); do
     ## Do some cache cleanup. If it's a new set of files then we bail out.
-    cleanup_cache "$d" $3
+    cleanup_cache "$d" $3 $MINUTES_AGO
     ## Crawl the directory.
     crawl_directory $1 "$d" $PARALLEL $DEBUG_FLAG
     ## Act depending on the result of the crawling.
