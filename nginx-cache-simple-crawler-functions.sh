@@ -80,11 +80,11 @@ function crawl_directory() {
     ## First we crawl the files in batches the size of the number of parallel.
     i=0
     while [ $i -lt $iterations ]; do
-        find "$2" -type f -printf '%f\n' 2>/dev/null | xargs -I '%c' -P $3 -n 1 crawl_file $1 %c $4
+        find "$2" -type f -not -iregex "$EXCLUDE_PATTERN" -printf '%f\n' 2>/dev/null | xargs -I '%c' -P $3 -n 1 crawl_file $1 %c $4
         i=$((i + 1))
     done
     ## Now we do the remainder.
-    find "$2" -type f -printf '%f\n' 2>/dev/null | xargs -I '%c' -P $rem -n 1 crawl_file $1 %c $4
+    find "$2" -type f -not -iregex "$EXCLUDE_PATTERN" -printf '%f\n' 2>/dev/null | xargs -I '%c' -P $rem -n 1 crawl_file $1 %c $4
 } # crawl_directory
 
 ## Cleanup the cache if these files were already cache.

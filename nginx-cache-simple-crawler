@@ -57,7 +57,11 @@ PARALLEL=${4-20}
 ## it to the empty string.
 DEBUG_FLAG=${5+yes}
 
-LOG_FILE=/tmp/nginx_simple_crawler.log
+## Exclusion pattern (emacs regexes - the default for find).
+EXCLUDE_PATTERN=".*\.\(bzr\|csv\|git\|lml\|svn\).*"
+
+LOG_FILE=/tmp/nginx_simple_crawler.log # log file
+
 ## Loop over all sub-directories that changed from 00h00 of today.
 for d in (find $2 -type d -daystart -mtime 0 -print); do
     ## Do some cache cleanup. If it's a new set of files then we bail out.
