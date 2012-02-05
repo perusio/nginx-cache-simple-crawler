@@ -89,13 +89,16 @@ function crawl_directory() {
 
 ## Cleanup the cache if these files were already cache.
 ## $1: The directory of the files to be cached.
+## $2: The Nginx cache directory.
 function cleanup_cache() {
-    local i
+    local i dir
+    ## Trim the trailing slash.
+    dir=$(trim_slashing_slash "$1")
 
-    for i in $(find "$1" -type f -name "*.lock" -print); do
+    for i in $(find "$1" -type f -name "cached_in_*.lock" -print); do
         ## Remove the lock file if it already exists.
         rm $i
         ## Purge the files from the cache.
-        run_cache_purge "${DIR##*/}*" $3
+        run_cache_purge "${dir##*/}*" $2
     done
 } # cleanup_cache

@@ -50,9 +50,6 @@ if [ $# -lt 3 ]; then
     exit 1
 fi
 
-## The base URI.
-BASE_URI=$1
-
 ## The default is 20 requests in parallel.
 PARALLEL=${4-20}
 
@@ -61,10 +58,10 @@ PARALLEL=${4-20}
 DEBUG_FLAG=${5+yes}
 
 ## Do some cache cleanup. If it's a new set of files then we bail out.
-cleanup_cache "$2"
+cleanup_cache "$2" $3
 
 ## Crawl the directory.
-crawl_directory $BASE_URI "$2" $PARALLEL $DEBUG_FLAG
+crawl_directory $1 "$2" $PARALLEL $DEBUG_FLAG
 
 ## Create a file indicating that this directory is cached.
 echo date '+ %s' >> "$2"/$(printf '.cached_in_%s.lock' $(date '+ %d%b%Y-%Hh%Mm%Ss'))
