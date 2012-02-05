@@ -57,11 +57,19 @@ PARALLEL=${4-20}
 ## it to the empty string.
 DEBUG_FLAG=${5+yes}
 
-## Do some cache cleanup. If it's a new set of files then we bail out.
-cleanup_cache "$2" $3
-
-## Crawl the directory.
-crawl_directory $1 "$2" $PARALLEL $DEBUG_FLAG
-
-## Create a file indicating that this directory is cached.
-echo date '+ %s' >> "$2"/$(printf '.cached_in_%s.lock' $(date '+ %d%b%Y-%Hh%Mm%Ss'))
+LOG_FILE=/tmp/nginx_simple_crawler.log
+## Loop over all sub-directories that changed from 00h00 of today.
+for d in (find $2 -type d -daystart -mtime 0 -print); do
+    ## Do some cache cleanup. If it's a new set of files then we bail out.
+    cleanup_cache "$d" $3
+    ## Crawl the directory.
+    crawl_directory $1 "$d" $PARALLEL $DEBUG_FLAG
+    ## Act depending on the result of the crawling.
+    if [ $? -eq 0 ]; then
+        ## Create a file indicating that this directory is cached.
+        create_cache_lock "$d"
+    else
+        ## If something goes wrong writ to a log.
+        cache_warmer_log "$d" $LOG_FILE
+    fi
+done

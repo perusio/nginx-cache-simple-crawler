@@ -102,3 +102,16 @@ function cleanup_cache() {
         run_cache_purge "${dir##*/}*" $2
     done
 } # cleanup_cache
+
+## Create a "lock" file signaling that all files in this dir are cached.
+## $1: the directory of the cached files.
+function create_cache_lock() {
+    echo date '+ %s' >> "$1"/$(printf '.cached_in_%s.lock' $(date '+ %d%b%Y-%Hh%Mm%Ss'))
+} # create_cache_lock
+
+## Add to a log when the cache priming process fails.
+## $1: directory of files to be cached.
+## $2: path to the log file.
+function cache_warmer_log() {
+    echo "Warning: $1 not cached." | ts >> $2
+} # cache_warmer_log
